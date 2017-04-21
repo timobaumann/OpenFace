@@ -587,7 +587,7 @@ int main (int argc, char **argv)
 			// But only if needed in output
 			if(!output_similarity_align.empty() || hog_output_file.is_open() || output_AUs)
 			{
-				face_analyser.AddNextFrame(captured_image, face_model, time_stamp, false, !det_parameters.quiet_mode);
+				face_analyser.AddNextFrame(captured_image, face_model, time_stamp, true, !det_parameters.quiet_mode);
 				face_analyser.GetLatestAlignedFace(sim_warped_img);
 
 				if(!det_parameters.quiet_mode)
@@ -719,8 +719,8 @@ int main (int argc, char **argv)
 
 		if (output_files.size() > 0 && output_AUs)
 		{
-			cout << "Postprocessing the Action Unit predictions" << endl;
-			face_analyser.PostprocessOutputFile(output_files[f_n], dynamic);
+			//cout << "Postprocessing the Action Unit predictions" << endl;
+			//face_analyser.PostprocessOutputFile(output_files[f_n], dynamic);
 		}
 		// Reset the models for the next video
 		face_analyser.Reset();
