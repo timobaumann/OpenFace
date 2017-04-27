@@ -548,7 +548,7 @@ int main (int argc, char **argv)
 
 /* TIMO: stuff to rotate image */
        transpose(captured_image, captured_image);
-       flip(captured_image, captured_image, 1);
+       flip(captured_image, captured_image, 0);
 
 			// Reading the images
 			cv::Mat_<uchar> grayscale_image;
