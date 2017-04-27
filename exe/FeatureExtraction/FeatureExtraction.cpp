@@ -546,6 +546,10 @@ int main (int argc, char **argv)
 				time_stamp = (double)frame_count * (1.0 / 30.0);
 			}
 
+/* TIMO: stuff to rotate image */
+       transpose(captured_image, captured_image);
+       flip(captured_image, captured_image, 1);
+
 			// Reading the images
 			cv::Mat_<uchar> grayscale_image;
 
