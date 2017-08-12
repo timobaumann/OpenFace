@@ -1049,7 +1049,7 @@ void Draw(cv::Mat img, const cv::Mat_<double>& shape2D, const cv::Mat_<int>& vis
 				cv::Point featurePoint(cvRound(shape2D.at<double>(i) * (double)draw_multiplier), cvRound(shape2D.at<double>(i + n) * (double)draw_multiplier));
 
 				// A rough heuristic for drawn point size
-				int thickness = (int)std::ceil(3.0* ((double)img.cols) / 640.0);
+				int thickness = (int)std::ceil(2.0* ((double)img.cols) / 640.0);
 				int thickness_2 = (int)std::ceil(1.0* ((double)img.cols) / 640.0);
 
 				cv::circle(img, featurePoint, 1 * draw_multiplier, cv::Scalar(0, 0, 255), thickness, CV_AA, draw_shiftbits);
@@ -1066,7 +1066,7 @@ void Draw(cv::Mat img, const cv::Mat_<double>& shape2D, const cv::Mat_<int>& vis
 
 			// A rough heuristic for drawn point size
 			int thickness = 1.0;
-			int thickness_2 = 1.0;
+			int thickness_2 = 0.5;
 
 			int next_point = i + 1;
 			if(i == 7)

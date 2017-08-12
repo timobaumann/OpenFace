@@ -110,17 +110,17 @@ void visualise_tracking(cv::Mat& captured_image, const LandmarkDetector::CLNF& f
 		vis_certainty = (vis_certainty + 1) / (visualisation_boundary + 1);
 
 		// A rough heuristic for box around the face width
-		int thickness = (int)std::ceil(2.0* ((double)captured_image.cols) / 640.0);
+		//int thickness = (int)std::ceil(2.0* ((double)captured_image.cols) / 640.0);
 
-		cv::Vec6d pose_estimate_to_draw = LandmarkDetector::GetCorrectedPoseWorld(face_model, fx, fy, cx, cy);
+		//cv::Vec6d pose_estimate_to_draw = LandmarkDetector::GetCorrectedPoseWorld(face_model, fx, fy, cx, cy);
 
 		// Draw it in reddish if uncertain, blueish if certain
-		LandmarkDetector::DrawBox(captured_image, pose_estimate_to_draw, cv::Scalar((1 - vis_certainty)*255.0, 0, vis_certainty * 255), thickness, fx, fy, cx, cy);
+		//LandmarkDetector::DrawBox(captured_image, pose_estimate_to_draw, cv::Scalar((1 - vis_certainty)*255.0, 0, vis_certainty * 255), thickness, fx, fy, cx, cy);
 		
-		if (det_parameters.track_gaze && detection_success && face_model.eye_model)
-		{
-			FaceAnalysis::DrawGaze(captured_image, face_model, gazeDirection0, gazeDirection1, fx, fy, cx, cy);
-		}
+		//if (det_parameters.track_gaze && detection_success && face_model.eye_model)
+		//{
+			//FaceAnalysis::DrawGaze(captured_image, face_model, gazeDirection0, gazeDirection1, fx, fy, cx, cy);
+		//}
 	}
 
 	// Work out the framerate
@@ -136,7 +136,7 @@ void visualise_tracking(cv::Mat& captured_image, const LandmarkDetector::CLNF& f
 	std::sprintf(fpsC, "%d", (int)fps_tracker);
 	string fpsSt("FPS:");
 	fpsSt += fpsC;
-	cv::putText(captured_image, fpsSt, cv::Point(10, 20), CV_FONT_HERSHEY_SIMPLEX, 0.5, CV_RGB(255, 0, 0));
+	//cv::putText(captured_image, fpsSt, cv::Point(10, 20), CV_FONT_HERSHEY_SIMPLEX, 0.5, CV_RGB(255, 0, 0));
 
 	if (!det_parameters.quiet_mode)
 	{
@@ -267,7 +267,7 @@ int main (int argc, char **argv)
 		{
 			try
  			{
-				writerFace = cv::VideoWriter(output_video_files[f_n], CV_FOURCC(output_codec[0], output_codec[1], output_codec[2], output_codec[3]), 30, captured_image.size(), true);
+				writerFace = cv::VideoWriter(output_video_files[f_n], CV_FOURCC(output_codec[0], output_codec[1], output_codec[2], output_codec[3]), 29.97, captured_image.size(), true);
 			}
 			catch(cv::Exception e)
 			{
@@ -296,7 +296,58 @@ int main (int argc, char **argv)
 					
 			// The actual facial landmark detection / tracking
 			bool detection_success = LandmarkDetector::DetectLandmarksInVideo(grayscale_image, clnf_model, det_parameters);
-			
+
+			double leftBound = 99999, rightBound = -1, upperBound = -1, lowerBound = 99999;
+
+			int numPoints = clnf_model.detected_landmarks.size().height / 2;
+			for (int i = 0; i < numPoints; i++) {
+				double x = clnf_model.detected_landmarks.at<double>(i);
+				double y = clnf_model.detected_landmarks.at<double>(i+numPoints);
+				leftBound = min(leftBound, x);
+				rightBound = max(rightBound, x);
+				lowerBound = min(lowerBound, y);
+				upperBound = max(upperBound, y);
+			}
+			/*INFO_STREAM(leftBound);
+			INFO_STREAM(rightBound);
+			INFO_STREAM(lowerBound);
+			INFO_STREAM(upperBound);/**/
+			double width = rightBound - leftBound;
+			double height = upperBound - lowerBound;
+			if (width > 0 && height > 0) {
+				// make blurred area 40% wider (equal on both sides)
+				leftBound -= .2 * width;
+				rightBound += .2 * width;
+				// make blurred area 70% higher (only at the top, chin is good enough)
+				lowerBound -= .7 * height;
+				// now ensure that we're not exceeding the maximal dimensions:
+				leftBound = max((double) 0, leftBound);
+				rightBound = min((double) captured_image.cols, rightBound);
+				lowerBound = max((double) 0, lowerBound);
+				upperBound = min((double) captured_image.rows, upperBound);
+				width = rightBound - leftBound;
+				height = upperBound - lowerBound;
+try {
+				if (width > 0 && height > 0) {
+					cv::Mat faceRegion = captured_image(cv::Rect(leftBound, lowerBound, rightBound-leftBound, upperBound-lowerBound));
+					cv::medianBlur(faceRegion, faceRegion, 25);
+				}
+} catch (cv::Exception e) {
+ERROR_STREAM("problem");
+			INFO_STREAM(leftBound);
+			INFO_STREAM(rightBound);
+			INFO_STREAM(lowerBound);
+			INFO_STREAM(upperBound);
+			INFO_STREAM(width);
+			INFO_STREAM(height);
+INFO_STREAM(captured_image.cols);
+
+INFO_STREAM(captured_image.rows);
+
+	throw e;
+}
+			}
+			//cv::GausianBlur(image(
 			// Visualising the results
 			// Drawing the facial landmarks on the face and the bounding box around it if tracking is successful and initialised
 			double detection_certainty = clnf_model.detection_certainty;
@@ -311,8 +362,11 @@ int main (int argc, char **argv)
 				FaceAnalysis::EstimateGaze(clnf_model, gazeDirection1, fx, fy, cx, cy, false);
 			}
 
-			visualise_tracking(captured_image, clnf_model, det_parameters, gazeDirection0, gazeDirection1, frame_count, fx, fy, cx, cy);
-			
+			try {
+				visualise_tracking(captured_image, clnf_model, det_parameters, gazeDirection0, gazeDirection1, frame_count, fx, fy, cx, cy);
+			} catch (cv::Exception & e) {
+				WARN_STREAM(e.msg);
+			}
 			// output the tracked video
 			if (!output_video_files.empty())
 			{
